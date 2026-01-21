@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     environment {
+        IMAGE_NAME = "rushrider"
         EMAIL = "siddhantarsmit@gmail.com"
     }
 
@@ -15,32 +16,22 @@ pipeline {
 
         stage('Validate') {
             steps {
-                sh 'pwd'
-                sh 'ls -l'
-
-                // Enter project folder
-                sh 'cd RushRider && ls -l'
-
-                // Validate required files exist
                 sh 'cd RushRider && test -f index.html'
                 sh 'cd RushRider && test -f style.css'
                 sh 'cd RushRider && test -f script.js'
             }
         }
 
-        stage('Deploy') {
+        stage('Build Docker Image') {
             steps {
-                // Clean old site
-                sh 'sudo rm -rf /var/www/html/*'
+                sh 'docker build -t ${IMAGE_NAME}:latest .'
+            }
+        }
 
-                // Deploy only website files (NOT PDFs, Excel, etc.)
-                sh 'sudo cp RushRider/index.html /var/www/html/'
-                sh 'sudo cp RushRider/style.css /var/www/html/'
-                sh 'sudo cp RushRider/script.js /var/www/html/'
-                sh 'sudo cp -r RushRider/img /var/www/html/'
-
-                // Fix permissions
-                sh 'sudo chown -R www-data:www-data /var/www/html'
+        stage('Run Container (Test)') {
+            steps {
+                sh 'docker rm -f rush-test || true'
+                sh 'docker run -d -p 8081:80 --name rush-test ${IMAGE_NAME}:latest'
             }
         }
     }
@@ -49,34 +40,16 @@ pipeline {
         success {
             emailext(
                 to: "${EMAIL}",
-                subject: "✅ DEPLOY SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """
-Rush-Rider deployed successfully 🚀
-
-Job      : ${env.JOB_NAME}
-Build No : ${env.BUILD_NUMBER}
-Branch   : ${env.BRANCH_NAME}
-URL      : ${env.BUILD_URL}
-
-Website is now LIVE.
-"""
+                subject: "✅ DOCKER BUILD SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: "Docker image built and container running on port 8081"
             )
         }
 
         failure {
             emailext(
                 to: "${EMAIL}",
-                subject: "❌ DEPLOY FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """
-Rush-Rider deployment FAILED ❌
-
-Job      : ${env.JOB_NAME}
-Build No : ${env.BUILD_NUMBER}
-Branch   : ${env.BRANCH_NAME}
-URL      : ${env.BUILD_URL}
-
-Fix immediately.
-"""
+                subject: "❌ DOCKER BUILD FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: "Docker build failed. Check Jenkins console."
             )
         }
     }

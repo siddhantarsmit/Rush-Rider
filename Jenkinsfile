@@ -23,15 +23,17 @@ pipeline {
                 sh 'cd RushRider && test -f script.js'
             }
         }
-
+        
         stage('Deploy') {
             steps {
                 sh 'sudo rm -rf /var/www/html/*'
-                sh 'sudo cp -r RushRider/* /var/www/html/'
+                sh 'sudo cp RushRider/index.html /var/www/html/'
+                sh 'sudo cp RushRider/style.css /var/www/html/'
+                sh 'sudo cp RushRider/script.js /var/www/html/'
+                sh 'sudo cp -r RushRider/img /var/www/html/'
                 sh 'sudo chown -R www-data:www-data /var/www/html'
             }
         }
-    }
 
     post {
         success {

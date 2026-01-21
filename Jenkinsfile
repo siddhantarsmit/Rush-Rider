@@ -2,9 +2,7 @@ pipeline {
     agent any
 
     environment {
-        PROJECT_DIR = "RushRider"
-        DEPLOY_DIR  = "/var/www/html"
-        EMAIL       = "siddhantarsmit@gmail.com"
+        EMAIL = "siddhantarsmit@gmail.com"
     }
 
     stages {
@@ -17,27 +15,39 @@ pipeline {
 
         stage('Validate') {
             steps {
-                sh '''
-                echo "Workspace:"
-                pwd
-                ls -l
-
-                echo "Entering project folder..."
-                cd RushRider
-
-                ls -l
-                test -f index.html || (echo "index.html missing" && exit 1)
-                test -f style.css || (echo "style.css missing" && exit 1)
-                test -f script.js || (echo "script.js missing" && exit 1)
-                '''
+                sh 'pwd'
+                sh 'ls -l'
+                sh 'cd RushRider && ls -l'
+                sh 'cd RushRider && test -f index.html'
+                sh 'cd RushRider && test -f style.css'
+                sh 'cd RushRider && test -f script.js'
             }
         }
 
         stage('Deploy') {
             steps {
-                sh '''
-                echo "Deploying to Apache..."
+                sh 'sudo rm -rf /var/www/html/*'
+                sh 'sudo cp -r RushRider/* /var/www/html/'
+                sh 'sudo chown -R www-data:www-data /var/www/html'
+            }
+        }
+    }
 
-                sudo rm -rf /var/www/html/*
-                sudo cp -r RushRider/* /var/www/html/
-                sudo chown -R www-data:www-
+    post {
+        success {
+            emailext(
+                to: "${EMAIL}",
+                subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: "Rush-Rider deployed successfully."
+            )
+        }
+
+        failure {
+            emailext(
+                to: "${EMAIL}",
+                subject: "FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: "Rush-Rider deployment failed. Check Jenkins console."
+            )
+        }
+    }
+}

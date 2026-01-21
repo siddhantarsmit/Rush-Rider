@@ -17,42 +17,27 @@ pipeline {
 
         stage('Validate') {
             steps {
-                sh """
+                sh '''
                 echo "Workspace:"
                 pwd
                 ls -l
 
                 echo "Entering project folder..."
-                cd ${PROJECT_DIR}
+                cd RushRider
 
                 ls -l
                 test -f index.html || (echo "index.html missing" && exit 1)
                 test -f style.css || (echo "style.css missing" && exit 1)
                 test -f script.js || (echo "script.js missing" && exit 1)
-                """
+                '''
             }
         }
 
         stage('Deploy') {
             steps {
-                sh """
+                sh '''
                 echo "Deploying to Apache..."
 
-                sudo rm -rf ${DEPLOY_DIR}/*
-                sudo cp -r ${PROJECT_DIR}/* ${DEPLOY_DIR}/
-                sudo chown -R www-data:www-data ${DEPLOY_DIR}
-                """
-            }
-        }
-    }
-
-    post {
-        success {
-            emailext(
-                to: "${EMAIL}",
-                subject: "✅ DEPLOY SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "Rush-Rider deployed successfully."
-            )
-        }
-
-        failure {
+                sudo rm -rf /var/www/html/*
+                sudo cp -r RushRider/* /var/www/html/
+                sudo chown -R www-data:www-
